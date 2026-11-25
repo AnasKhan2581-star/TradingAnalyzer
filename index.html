@@ -1,1 +1,98 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>TradingAnalyzer — Live Charts, Indicators, Screener &amp; Paper Trading</title>
+  <meta name="description" content="Advanced browser-based charting platform: real-time crypto data, 45+ indicators, 50+ drawing tools, multi-chart layouts, alerts, screener, strategy tester, script editor and paper trading.">
+  <meta name="theme-color" content="#131722">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23131722'/%3E%3Cpath d='M5 23l7-8 5 5 8-11' fill='none' stroke='%232962FF' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='25' cy='9' r='3' fill='%23089981'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="splash"><div class="spin"></div></div>
+  <div id="app">
+    <header id="topbar">
+      <div class="tb-scroll">
+        <button id="btnMenu" class="tb-btn icon-only" title="Menu"></button>
+        <a id="logo" class="logo" href="./" title="TradingAnalyzer"></a>
+        <button id="btnSymbol" class="tb-symbol" title="Symbol Search">
+          <span id="symIcon" class="sym-badge">B</span>
+          <span id="symName">BTCUSDT</span>
+        </button>
+        <button id="btnCompare" class="tb-btn icon-only" title="Compare or Add Symbol"></button>
+        <span class="tb-sep"></span>
+        <div id="intervals" class="tb-group"></div>
+        <span class="tb-sep"></span>
+        <button id="btnType" class="tb-btn icon-only" title="Chart type"></button>
+        <span class="tb-sep"></span>
+        <button id="btnIndicators" class="tb-btn" title="Indicators, Metrics & Strategies ( / )"></button>
+        <button id="btnTemplates" class="tb-btn icon-only" title="Indicator templates"></button>
+        <span class="tb-sep hide-sm"></span>
+        <button id="btnAlert" class="tb-btn hide-sm" title="Create Alert (Alt+A)"></button>
+        <button id="btnReplay" class="tb-btn hide-sm" title="Bar Replay"></button>
+        <span class="tb-sep hide-sm"></span>
+        <button id="btnUndo" class="tb-btn icon-only hide-sm" title="Undo (Ctrl+Z)"></button>
+        <button id="btnRedo" class="tb-btn icon-only hide-sm" title="Redo (Ctrl+Y)"></button>
+      </div>
+      <div class="tb-right">
+        <button id="btnLayout" class="tb-btn icon-only hide-sm" title="Select layout"></button>
+        <button id="btnSave" class="tb-btn hide-md" title="Save / export"></button>
+        <button id="btnSettings" class="tb-btn icon-only hide-sm" title="Chart settings"></button>
+        <button id="btnFullscreen" class="tb-btn icon-only hide-md" title="Fullscreen mode"></button>
+        <button id="btnShot" class="tb-btn icon-only hide-sm" title="Take a snapshot"></button>
+        <button id="btnTheme" class="tb-btn icon-only" title="Toggle dark / light theme"></button>
+        <button id="btnTrade" class="tb-btn btn-trade" title="Open trading panel"></button>
+      </div>
+    </header>
 
+    <div id="replaybar" hidden>
+      <span class="rp-label">Bar Replay</span>
+      <button id="replaySelect" class="tb-btn">Select bar</button>
+      <button id="replayBack" class="tb-btn icon-only" title="Step back"></button>
+      <button id="replayPlay" class="tb-btn icon-only" title="Play / Pause"></button>
+      <button id="replayStep" class="tb-btn icon-only" title="Step forward"></button>
+      <select id="replaySpeed" class="inp sm" title="Speed">
+        <option value="0.5">0.5x</option><option value="1" selected>1x</option><option value="2">2x</option><option value="3">3x</option><option value="5">5x</option><option value="10">10x</option>
+      </select>
+      <button id="replayExit" class="tb-btn icon-only" title="Exit replay"></button>
+    </div>
+
+    <div id="main">
+      <nav id="lefttb" aria-label="Drawing tools"></nav>
+      <section id="center">
+        <div id="chartsWrap">
+          <div id="charts" class="layout-1"></div>
+        </div>
+        <div id="bottombar">
+          <div id="rangebar" class="bb-left"></div>
+          <div class="bb-right">
+            <button id="clock" class="bb-btn clock" title="Time zone"></button>
+            <span class="bb-sep"></span>
+            <button id="btnPct" class="bb-btn" title="Toggle percentage scale">%</button>
+            <button id="btnLog" class="bb-btn" title="Toggle log scale (Alt+L)">log</button>
+            <button id="btnAuto" class="bb-btn on" title="Auto-fit price scale">auto</button>
+          </div>
+        </div>
+        <div id="bottompanel">
+          <div id="bp-resize"></div>
+          <div id="bp-tabs"></div>
+          <div id="bp-body" hidden></div>
+        </div>
+      </section>
+      <aside id="rightpanel" hidden><div id="rp-body"></div></aside>
+      <nav id="rightbar" aria-label="Panels"></nav>
+    </div>
+
+    <nav id="mobilenav">
+      <button data-m="tools" id="mnDraw"><span class="ico"></span><span>Draw</span></button>
+      <button data-m="ind"><span class="ico"></span><span>Indicators</span></button>
+      <button data-p="watchlist"><span class="ico"></span><span>Watchlist</span></button>
+      <button data-p="alerts"><span class="ico"></span><span>Alerts</span></button>
+      <button data-b="trading"><span class="ico"></span><span>Trade</span></button>
+      <button data-m="more"><span class="ico"></span><span>More</span></button>
+    </nav>
+  </div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
