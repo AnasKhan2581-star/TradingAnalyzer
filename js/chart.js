@@ -829,7 +829,7 @@ export class Chart extends Emitter {
         const H = tool.handles ? tool.handles(c, d, P) : P;
         ctx.lineWidth = 1.5; ctx.setLineDash([]);
         for (const h of H) {
-          ctx.beginPath(); ctx.arc(h.x, h.y, d === this.selected ? 5.5 : 4.5, 0, Math.PI * 2);
+          ctx.beginPath(); ctx.arc(h.x, h.y, d === this.selected ? 6.3 : 5.2, 0, Math.PI * 2);
           ctx.fillStyle = this.theme.handle; ctx.fill(); ctx.strokeStyle = '#2962FF'; ctx.stroke();
         }
       }
@@ -1118,7 +1118,7 @@ export class Chart extends Emitter {
       const tool = TOOLS[d.type], c = this._paneCtx(pane);
       const P = d.points.map((p) => ({ x: c.toX(p.t), y: c.toY(p.p) }));
       const H = tool.handles ? tool.handles(c, d, P) : P;
-      for (let i = 0; i < H.length; i++) if (Math.hypot(H[i].x - x, H[i].y - y) <= 8) return { d, i, pane };
+      for (let i = 0; i < H.length; i++) if (Math.hypot(H[i].x - x, H[i].y - y) <= 9.2) return { d, i, pane };
     }
     return null;
   }
