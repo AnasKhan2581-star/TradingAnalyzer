@@ -267,12 +267,69 @@ function symRow(id, opt = {}) {
   const row = el('div', { class: 'mrow' + (id === app.active?.cfg.symbol ? ' active' : '') }, symbolLogo(s, 'xl'),
     el('div', { class: 'mr-sym' }, el('b', {}, s.symbol, hub.isLive(s) ? el('span', { class: 'mr-live' }) : el('span', { class: 'mr-sim' }, 'SIM')), el('span', {}, s.name)),
     el('div', { class: 'mr-right' }, px, ch));
-  row.addEventListener('click', () => { app.active.setSymbol(id); setTab('chart'); });
-  row.addEventListener('contextmenu', (e) => { e.preventDefault(); opt.menu?.(e); });
+  row.addEventListener('click', () => {
+    if (row._swiped) { row._swiped = false; return; }
+    if (openSwipe && openSwipe !== row) { closeSwipe(); return; }
+    if (row._open) { closeSwipe(); return; }
+    app.active.setSymbol(id); setTab('chart');
+  });
+  row.addEventListener('contextmenu', (e) => { e.preventDefault(); if (!row._dragging) opt.menu?.(e); });
   rowsById.set(id, { px, ch, s });
   const q = hub.quote(id); if (q) paintRow(id, q);
-  return row;
+  if (!opt.onDelete) return row;
+  // swipe left to reveal "Delete"; a long swipe deletes straight away
+  const del = el('button', { class: 'mr-del', html: `${I.trash}<span>Delete</span>` });
+  const wrap = el('div', { class: 'mrow-wrap' }, del, row);
+  const doDelete = () => {
+    if (openSwipe === row) openSwipe = null;
+    row.style.transition = 'transform .18s ease-out'; row.style.transform = 'translateX(-100%)';
+    wrap.style.height = wrap.offsetHeight + 'px';
+    setTimeout(() => { wrap.classList.add('removing'); wrap.style.height = '0px'; }, 140);
+    setTimeout(() => opt.onDelete(), 330);
+  };
+  del.addEventListener('click', (e) => { e.stopPropagation(); doDelete(); });
+  const OPEN = 96;
+  let x0 = 0, y0 = 0, base = 0, dx = 0, mode = null, pid = null;
+  row.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    x0 = e.clientX; y0 = e.clientY; base = row._open ? -OPEN : 0; dx = 0; mode = null; pid = e.pointerId;
+    row.style.transition = 'none';
+  });
+  row.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== pid) return;
+    const mx = e.clientX - x0, my = e.clientY - y0;
+    if (!mode) {
+      if (Math.abs(mx) < 8 && Math.abs(my) < 8) return;
+      mode = Math.abs(mx) > Math.abs(my) * 1.2 ? 'h' : 'v';
+      if (mode === 'h') { row.setPointerCapture(pid); row._dragging = true; if (openSwipe && openSwipe !== row) closeSwipe(); }
+    }
+    if (mode !== 'h') return;
+    e.preventDefault();
+    dx = Math.min(0, base + mx);
+    if (dx < -wrap.offsetWidth * 0.55) dx = -wrap.offsetWidth * 0.55 + (dx + wrap.offsetWidth * 0.55) * 0.35;
+    row.style.transform = `translateX(${dx}px)`;
+    del.classList.toggle('full', dx < -wrap.offsetWidth * 0.45);
+    del.style.width = Math.max(OPEN, -dx) + 'px';
+  });
+  const end = (e) => {
+    if (e.pointerId !== pid) return;
+    pid = null;
+    if (mode !== 'h') { mode = null; return; }
+    row._swiped = true; setTimeout(() => { row._dragging = false; }, 50);
+    row.style.transition = 'transform .2s ease-out';
+    if (dx < -wrap.offsetWidth * 0.45) { doDelete(); return; }
+    if (dx < -OPEN / 2) { row.style.transform = `translateX(${-OPEN}px)`; del.style.width = OPEN + 'px'; row._open = true; openSwipe = row; row._close = close; }
+    else close();
+    mode = null;
+  };
+  const close = () => { row.style.transition = 'transform .2s ease-out'; row.style.transform = ''; row._open = false; del.classList.remove('full'); if (openSwipe === row) openSwipe = null; };
+  row._close = close;
+  row.addEventListener('pointerup', end);
+  row.addEventListener('pointercancel', end);
+  return wrap;
 }
+let openSwipe = null;
+function closeSwipe() { if (openSwipe) openSwipe._close?.(); openSwipe = null; }
 function paintRow(id, q) {
   const r = rowsById.get(id); if (!r) return;
   const prec = symbolPrecision(r.s, q.last), prev = r.last;
@@ -347,13 +404,24 @@ function watchlistPage(page) {
         { label: 'Open chart', icon: 'chart', onClick: () => { app.active.setSymbol(id); setTab('chart'); } },
         { label: 'Add alert', icon: 'alarm', onClick: () => { app.active.setSymbol(id); setTab('chart'); D.alertDialog(app); } },
         { label: 'Trade', icon: 'trade', onClick: () => app.bottom.trading.ticket(id, 'buy') },
-        { label: 'Remove from watchlist', icon: 'trash', danger: true, onClick: () => { sec.items = sec.items.filter((x) => x !== id); P.saveWl(); renderPage(); } },
-      ]) });
+        { label: 'Remove from watchlist', icon: 'trash', danger: true, onClick: () => removeItem(sec, id) },
+      ]), onDelete: () => removeItem(sec, id) });
       if (r) body.append(r);
     }
   });
   body.append(el('button', { class: 'mp-add', onclick: () => D.symbolSearch(app, (s) => { P.addSymbol(s.id); renderPage(); }) }, el('span', { html: I.plus }), 'Add symbol'));
   page.append(head, lists, body);
+}
+function removeItem(sec, id) {
+  const P = app.panels, pos = sec.items.indexOf(id);
+  if (pos < 0) return;
+  sec.items.splice(pos, 1); P.saveWl(); renderPage();
+  const name = findSymbol(id)?.symbol || id;
+  const t = toast(`${name} removed from watchlist <button class="btn btn-ghost xs t-undo">Undo</button>`, 'info', 5000);
+  t.querySelector('.t-undo')?.addEventListener('click', () => {
+    if (!sec.items.includes(id)) { sec.items.splice(Math.min(pos, sec.items.length), 0, id); P.saveWl(); renderPage(); }
+    t.remove();
+  });
 }
 const titleCase = (s) => s.charAt(0) + s.slice(1).toLowerCase();
 

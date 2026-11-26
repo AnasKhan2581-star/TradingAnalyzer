@@ -732,3 +732,13 @@ img.sym-badge.logo { background: transparent; object-fit: contain; }
   #toasts { bottom: 150px; }
   .draw-tb { bottom: 8px; }
 }
+
+/* swipe-to-delete rows (mobile watchlist) */
+.mrow-wrap { position: relative; overflow: hidden; transition: height .18s ease-out; }
+.mrow-wrap.removing { opacity: 0; transition: height .18s ease-out, opacity .15s; }
+.mrow-wrap .mrow { background: var(--bg); touch-action: pan-y; will-change: transform; z-index: 1; }
+:root[data-theme="dark"] .mrow-wrap .mrow { background: #000; }
+.mrow-wrap .mrow.active { background: var(--bg3); }
+.mr-del { position: absolute; right: 0; top: 0; bottom: 0; width: 96px; background: var(--down); color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 13px; font-weight: 600; transition: background .15s; }
+.mr-del svg { width: 26px; height: 26px; stroke-width: 1.6; }
+.mr-del.full { background: #d81e2e; }
