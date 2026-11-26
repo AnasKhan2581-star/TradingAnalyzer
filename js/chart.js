@@ -5,8 +5,8 @@ import { sources } from './indicators.js';
 
 export const THEMES = {
   dark: {
-    bg: '#131722', grid: 'rgba(42,46,57,0.6)', text: '#B2B5BE', strong: '#D1D4DC', border: '#2A2E39', cross: '#9598A1', crossLabel: '#363A45',
-    labelBg: '#2A2E39', labelText: '#D1D4DC', watermark: 'rgba(178,181,190,0.06)', handle: '#131722', level: 'rgba(120,123,134,0.6)', scaleBg: '#131722',
+    bg: '#0F0F0F', grid: 'rgba(242,242,242,0.06)', text: '#B2B5BE', strong: '#DBDBDB', border: '#2E2E2E', cross: '#9598A1', crossLabel: '#4A4A4A',
+    labelBg: '#2E2E2E', labelText: '#DBDBDB', watermark: 'rgba(219,219,219,0.06)', handle: '#0F0F0F', level: 'rgba(120,123,134,0.6)', scaleBg: '#0F0F0F',
   },
   light: {
     bg: '#FFFFFF', grid: 'rgba(42,46,57,0.07)', text: '#131722', strong: '#131722', border: '#E0E3EB', cross: '#9598A1', crossLabel: '#131722',
@@ -440,7 +440,8 @@ export class Chart extends Emitter {
       if (lo === Infinity) { lo = 0; hi = 1; }
       if (hi - lo < Math.abs(hi) * 1e-6 || hi === lo) { const d = Math.abs(hi) * 0.01 || 1; lo -= d; hi += d; }
       const r = hi - lo;
-      sc.min = lo - r * sc.mb; sc.max = hi + r * sc.mt;
+      const inset = isMain && this.topInset ? this.topInset / Math.max(40, pane.h - this.topInset) : 0;
+      sc.min = lo - r * sc.mb; sc.max = hi + r * (sc.mt + inset);
       if (isMain && this.indicators.some((i) => i.scale && i.visible && i.pane === 'main')) sc.min = lo - r * 0.25;
     }
     for (const inst of this.indicators) {

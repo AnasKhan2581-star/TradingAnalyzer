@@ -1,6 +1,6 @@
 // Bottom panel: Stock Screener, Script Editor, Strategy Tester, Trading Panel (paper trading)
 import { el, $, $$, store, fmtPrice, fmtPct, fmtVol, fmtSigned, fmtNum, uid, hashStr, fmtDateTime, TimeZone, isMobile, beep } from './util.js';
-import { SYMBOLS, findSymbol, symbolPrecision, SYMBOL_COLORS, TYPES } from './symbols.js';
+import { SYMBOLS, findSymbol, symbolPrecision, SYMBOL_COLORS, TYPES, symbolLogo } from './symbols.js';
 import { hub } from './datafeed.js';
 import { ta, sources, STRATEGIES, backtest, technicalRating, defaultInputs, INDICATORS } from './indicators.js';
 import { I } from './icons.js';
@@ -527,7 +527,7 @@ class Screener {
       const prec = symbolPrecision(r.s, r.last || r.s.price);
       const rc = r.score > 0.5 ? 'sbuy' : r.score > 0.1 ? 'buy' : r.score < -0.5 ? 'ssell' : r.score < -0.1 ? 'sell' : 'neutral';
       const tr = el('tr', { class: 'clickable' },
-        el('td', {}, el('span', { class: 'sym-badge sm', style: { background: SYMBOL_COLORS[r.s.type] } }, r.s.symbol[0]), ' ', el('b', {}, r.symbol), el('div', { class: 'muted xs' }, r.s.name)),
+        el('td', {}, symbolLogo(r.s, 'sm'), ' ', el('b', {}, r.symbol), el('div', { class: 'muted xs' }, r.s.name)),
         el('td', {}, fmtPrice(r.last, prec)), el('td', { class: r.chgPct >= 0 ? 'up' : 'down' }, fmtPct(r.chgPct)), el('td', { class: r.chg >= 0 ? 'up' : 'down' }, fmtSigned(r.chg, prec)),
         el('td', {}, fmtVol(r.vol)), el('td', { class: r.w1 >= 0 ? 'up' : 'down' }, fmtPct(r.w1)), el('td', { class: r.m1 >= 0 ? 'up' : 'down' }, fmtPct(r.m1)), el('td', {}, isFinite(r.volat) ? r.volat.toFixed(2) + '%' : '—'),
         el('td', { class: r.rsi > 70 ? 'down' : r.rsi < 30 ? 'up' : '' }, isFinite(r.rsi) ? r.rsi.toFixed(1) : '—'),

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>TradingAnalyzer — Live Charts, Indicators, Screener &amp; Paper Trading</title>
   <meta name="description" content="Advanced browser-based charting platform: real-time crypto data, 45+ indicators, 50+ drawing tools, multi-chart layouts, alerts, screener, strategy tester, script editor and paper trading.">
-  <meta name="theme-color" content="#131722">
+  <meta name="theme-color" content="#0f0f0f">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23131722'/%3E%3Cpath d='M5 23l7-8 5 5 8-11' fill='none' stroke='%232962FF' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='25' cy='9' r='3' fill='%23089981'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -64,7 +64,9 @@
       <section id="center">
         <div id="chartsWrap">
           <div id="charts" class="layout-1"></div>
+          <div id="mhead"></div>
         </div>
+        <div id="mbar"></div>
         <div id="bottombar">
           <div id="rangebar" class="bb-left"></div>
           <div class="bb-right">
@@ -85,14 +87,8 @@
       <nav id="rightbar" aria-label="Panels"></nav>
     </div>
 
-    <nav id="mobilenav">
-      <button data-m="tools" id="mnDraw"><span class="ico"></span><span>Draw</span></button>
-      <button data-m="ind"><span class="ico"></span><span>Indicators</span></button>
-      <button data-p="watchlist"><span class="ico"></span><span>Watchlist</span></button>
-      <button data-p="alerts"><span class="ico"></span><span>Alerts</span></button>
-      <button data-b="trading"><span class="ico"></span><span>Trade</span></button>
-      <button data-m="more"><span class="ico"></span><span>More</span></button>
-    </nav>
+    <div id="mpage" hidden></div>
+    <nav id="mobilenav"></nav>
   </div>
   <script type="module" src="js/main.js"></script>
 </body>

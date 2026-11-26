@@ -1,6 +1,6 @@
 // Application dialogs
 import { el, $, fmtPrice, fmtPct, store, INTERVALS, intervalById, DAY, MIN, HOUR, WEEK, TIMEZONES, condLabel } from './util.js';
-import { SYMBOLS, TYPES, searchSymbols, findSymbol, symbolPrecision, SYMBOL_COLORS } from './symbols.js';
+import { SYMBOLS, TYPES, searchSymbols, findSymbol, symbolPrecision, SYMBOL_COLORS, symbolLogo } from './symbols.js';
 import { INDICATORS, defaultInputs } from './indicators.js';
 import { TOOLS } from './drawings.js';
 import { hub } from './datafeed.js';
@@ -27,7 +27,7 @@ export function symbolSearch(app, onPick, opts = {}) {
     results.forEach((s, i) => {
       const q = hub.quote(s.id);
       const row = el('div', { class: 'ss-row' + (i === sel ? ' sel' : '') },
-        el('span', { class: 'sym-badge', style: { background: SYMBOL_COLORS[s.type] } }, s.symbol[0]),
+        symbolLogo(s),
         el('span', { class: 'ss-sym' }, hl(s.symbol, input.value)),
         el('span', { class: 'ss-name' }, s.name),
         el('span', { class: 'ss-px' }, q ? fmtPrice(q.last, symbolPrecision(s, q.last)) : ''),

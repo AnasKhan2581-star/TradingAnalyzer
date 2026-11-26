@@ -116,6 +116,7 @@ class ChartWidget {
     this.cfg.symbol = id; this.cfg.compares = []; this.chart.compares = []; this.chart.setMarkers([]); this.chart._bidAsk = null;
     this.load(); this.app.save(); this.app.emit('symbol', this);
     if (this === this.app.active) this.app.updateTopbar();
+    this.app.pushRecent(id);
     if (this.app.sync.symbol && this === this.app.active) for (const w of this.app.widgets) if (w !== this && w.cfg.symbol !== id) w.setSymbol(id);
   }
   setInterval(iv) { this.cfg.interval = iv; this.load(); this.app.save(); this.app.emit('interval', this); }
@@ -219,6 +220,52 @@ class App extends Emitter {
     this.setActive(this.active, true);
     this.applyToolState();
     this.save();
+  }
+  /* ---------------------------- named layouts ---------------------------- */
+  get savedLayouts() { return store.get('savedLayouts', []); }
+  pushRecent(id) { const r = store.get('recentSymbols', []).filter((x) => x !== id); r.unshift(id); store.set('recentSymbols', r.slice(0, 12)); this.emit('recent'); }
+  async saveLayoutAs(force) {
+    const list = this.savedLayouts;
+    let cur = list.find((l) => l.id === store.get('currentLayout', null));
+    if (!cur || force) {
+      const name = await promptText('Save layout as', cur ? cur.name + ' copy' : `${this.active.sym.symbol} layout`);
+      if (!name) return;
+      cur = { id: uid(), name }; list.push(cur);
+    }
+    Object.assign(cur, { t: Date.now(), layout: this.layout, widgets: JSON.parse(JSON.stringify(this.widgets.map((w) => w.cfg))) });
+    store.set('savedLayouts', list); store.set('currentLayout', cur.id); this._save();
+    toast(`Layout “${cur.name}” saved`, 'success'); this.emit('layouts');
+  }
+  openLayout(id) {
+    const l = this.savedLayouts.find((x) => x.id === id); if (!l) return;
+    this.exitReplay?.();
+    this.cfgs = JSON.parse(JSON.stringify(l.widgets)); this.layout = l.layout; this.activeIdx = 0;
+    store.set('currentLayout', id); this.buildLayout(); this.updateTopbar();
+    toast(`Opened “${l.name}”`, 'info', 1800); this.emit('layouts');
+  }
+  newLayout() {
+    const s = this.active?.cfg.symbol || 'BINANCE:BTCUSDT', iv = this.active?.cfg.interval || '1h';
+    this.cfgs = [defaultWidget(s, iv)]; this.layout = '1'; this.activeIdx = 0;
+    store.set('currentLayout', null); this.buildLayout(); this.updateTopbar(); toast('New layout', 'info', 1500); this.emit('layouts');
+  }
+  renameLayout(id, name) { const list = this.savedLayouts; const l = list.find((x) => x.id === id); if (l && name) { l.name = name; store.set('savedLayouts', list); this.emit('layouts'); } }
+  deleteLayout(id) { store.set('savedLayouts', this.savedLayouts.filter((x) => x.id !== id)); if (store.get('currentLayout') === id) store.set('currentLayout', null); this.emit('layouts'); }
+  layoutsDialog() {
+    const body = el('div', { class: 'lay-list' });
+    const render = () => {
+      body.innerHTML = '';
+      const list = this.savedLayouts.sort((a, b) => b.t - a.t), cur = store.get('currentLayout', null);
+      if (!list.length) body.append(el('div', { class: 'empty' }, 'No saved layouts yet. Use “Save” to store the current charts, indicators and settings.'));
+      for (const l of list) {
+        const sym = findSymbol(l.widgets?.[0]?.symbol);
+        body.append(el('div', { class: 'lay-row' + (l.id === cur ? ' on' : '') },
+          el('div', { class: 'lay-main', onclick: () => { d.close(); this.openLayout(l.id); } }, el('b', {}, l.name), el('span', { class: 'muted sm' }, `${sym?.symbol || ''} · ${intervalById(l.widgets?.[0]?.interval).short} · ${l.widgets?.length || 1} chart(s) · ${new Date(l.t).toLocaleString()}`)),
+          el('button', { class: 'icon-btn', title: 'Rename', html: I.pencil, onclick: async () => { const n = await promptText('Rename layout', l.name); if (n) { this.renameLayout(l.id, n); render(); } } }),
+          el('button', { class: 'icon-btn', title: 'Delete', html: I.trash, onclick: () => { this.deleteLayout(l.id); render(); } })));
+      }
+    };
+    const d = dialog({ title: 'Manage layouts', width: 480, body, buttons: [{ label: 'New layout', left: true, onClick: () => this.newLayout() }, { label: 'Save current as…', primary: true, onClick: () => { this.saveLayoutAs(true); } }] });
+    render();
   }
   setLayout(id) { this.cfgs = this.widgets.map((w) => w.cfg).concat(this.cfgs.slice(this.widgets.length)); this.layout = id; this.buildLayout(); }
   setActive(w, force) {
@@ -346,7 +393,11 @@ class App extends Emitter {
   }
   saveMenu(b) {
     menu(b, [
-      { label: 'Save layout', icon: 'save', shortcut: 'Ctrl+S', onClick: () => { this._save(); toast('Chart layout saved', 'success'); } },
+      { label: 'Save layout', icon: 'save', shortcut: 'Ctrl+S', onClick: () => this.saveLayoutAs() },
+      { label: 'Save layout as…', icon: 'save', onClick: () => this.saveLayoutAs(true) },
+      { label: 'Open layout…', icon: 'layout', onClick: () => this.layoutsDialog() },
+      { label: 'New layout', icon: 'plus', onClick: () => this.newLayout() },
+      { divider: true },
       { label: 'Export layout (JSON)', icon: 'download', onClick: () => this.exportLayout() },
       { label: 'Import layout…', icon: 'upload', onClick: () => this.importLayout() },
       { divider: true },
@@ -397,7 +448,7 @@ class App extends Emitter {
     document.documentElement.dataset.theme = this.theme;
     $('#btnTheme').innerHTML = this.theme === 'dark' ? I.sun : I.moon;
     for (const w of this.widgets) w.chart.setTheme(this.theme);
-    $('meta[name=theme-color]').content = this.theme === 'dark' ? '#131722' : '#ffffff';
+    $('meta[name=theme-color]').content = this.theme === 'dark' ? '#0f0f0f' : '#ffffff';
     this.save(); this.emit('theme');
   }
   applySettings(s) { Object.assign(this.settings, s); for (const w of this.widgets) w.chart.setSettings(s); if ('tradeButtons' in s) this.widgets.forEach((w) => { w.chart.info.tradeButtons = s.tradeButtons; w.chart._buildLegend(); }); this.updateBottomBar(); this.save(); }
@@ -792,7 +843,7 @@ class App extends Emitter {
       if (alt && code === 'KeyW') { e.preventDefault(); this.panels.toggle('watchlist'); return; }
       if (ctrl && code === 'KeyZ') { e.preventDefault(); if (e.shiftKey) c.redo(); else c.undo(); return; }
       if (ctrl && code === 'KeyY') { e.preventDefault(); c.redo(); return; }
-      if (ctrl && code === 'KeyS') { e.preventDefault(); this._save(); toast('Chart layout saved', 'success'); return; }
+      if (ctrl && code === 'KeyS') { e.preventDefault(); this.saveLayoutAs(); return; }
       if (ctrl && code === 'KeyK') { e.preventDefault(); D.symbolSearch(this, (s) => this.active.setSymbol(s.id)); return; }
       if (ctrl && k === 'ArrowUp') { e.preventDefault(); c.zoom(1.2); return; }
       if (ctrl && k === 'ArrowDown') { e.preventDefault(); c.zoom(1 / 1.2); return; }

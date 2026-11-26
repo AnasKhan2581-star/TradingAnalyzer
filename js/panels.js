@@ -1,6 +1,6 @@
 // Right sidebar panels
 import { el, $, $$, store, fmtPrice, fmtPct, fmtVol, fmtSigned, uid, isMobile, fmtDateTime, TimeZone, condLabel, DAY } from './util.js';
-import { SYMBOLS, findSymbol, symbolPrecision, SYMBOL_COLORS } from './symbols.js';
+import { SYMBOLS, findSymbol, symbolPrecision, SYMBOL_COLORS, symbolLogo } from './symbols.js';
 import { hub } from './datafeed.js';
 import { technicalRating, sources, ta } from './indicators.js';
 import { TOOLS } from './drawings.js';
@@ -153,7 +153,7 @@ export class Panels {
         const s = findSymbol(id); if (!s) continue;
         const last = el('span', { class: 'wl-last' }), chg = el('span', { class: 'wl-chg' }), pct = el('span', { class: 'wl-pct' });
         const row = el('div', { class: 'wl-row' + (id === activeId ? ' active' : ''), draggable: 'true' },
-          el('span', { class: 'wl-sym' }, el('span', { class: 'sym-badge sm', style: { background: SYMBOL_COLORS[s.type] } }, s.symbol[0]), el('span', { class: 'wl-name', title: s.name }, s.symbol), hub.isLive(s) ? el('span', { class: 'dot-live', title: 'Real-time' }) : null),
+          el('span', { class: 'wl-sym' }, symbolLogo(s, 'sm'), el('span', { class: 'wl-name', title: s.name }, s.symbol), hub.isLive(s) ? el('span', { class: 'dot-live', title: 'Real-time' }) : null),
           last, chg, pct,
           el('button', { class: 'wl-x', title: 'Remove', html: '&times;', onclick: (e) => { e.stopPropagation(); sec.items = sec.items.filter((x) => x !== id); this.saveWl(); this.renderWatchlist(); } }));
         row.addEventListener('click', () => { this.app.active.setSymbol(id); if (this.app.sync.symbol) this.app.widgets.forEach((w) => w !== this.app.active && w.setSymbol(id)); this.app.updateTopbar(); if (isMobile()) this.show(null); });
@@ -210,7 +210,7 @@ export class Panels {
     const s = this.app.active.sym;
     box.innerHTML = '';
     box.append(
-      el('div', { class: 'det-top' }, el('span', { class: 'sym-badge lg', style: { background: SYMBOL_COLORS[s.type] } }, s.symbol[0]),
+      el('div', { class: 'det-top' }, symbolLogo(s, 'lg'),
         el('div', {}, el('div', { class: 'det-sym' }, s.symbol, el('span', { class: 'det-ex' }, ' · ' + s.exchange)), el('div', { class: 'det-name' }, s.name))),
       el('div', { class: 'det-price' }, el('span', { class: 'det-last' }), el('span', { class: 'det-cur' }, s.type === 'crypto' ? 'USDT' : s.type === 'forex' ? '' : 'USD'), el('span', { class: 'det-chg' })),
       el('div', { class: 'det-status' }),
@@ -335,7 +335,7 @@ export class Panels {
     else list.sort((a, b) => (b.q.vol * b.q.last) - (a.q.vol * a.q.last));
     for (const { s, q } of list.slice(0, 25)) {
       const prec = symbolPrecision(s, q.last);
-      const row = el('div', { class: 'wl-row' }, el('span', { class: 'wl-sym' }, el('span', { class: 'sym-badge sm', style: { background: SYMBOL_COLORS[s.type] } }, s.symbol[0]), el('span', { class: 'wl-name' }, s.symbol)),
+      const row = el('div', { class: 'wl-row' }, el('span', { class: 'wl-sym' }, symbolLogo(s, 'sm'), el('span', { class: 'wl-name' }, s.symbol)),
         el('span', { class: 'wl-last' }, fmtPrice(q.last, prec)), el('span', { class: 'wl-chg' }, this.hlTab === 'active' ? fmtVol(q.vol * q.last) : ''), el('span', { class: 'wl-pct ' + (q.chgPct >= 0 ? 'up' : 'down') }, fmtPct(q.chgPct)));
       row.addEventListener('click', () => this.app.active.setSymbol(s.id));
       box.append(row);

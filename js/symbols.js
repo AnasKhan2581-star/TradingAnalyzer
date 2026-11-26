@@ -1,3 +1,4 @@
+import { el } from './util.js';
 // Symbol universe. Crypto uses live Binance market data; the rest use a
 // deterministic market simulator (clearly labelled "SIM" in the UI).
 const C = (s, name, base, vol = 0.7) => ({ symbol: s + 'USDT', base: s, exchange: 'BINANCE', name: `${name} / TetherUS`, type: 'crypto', feed: 'binance', price: base, vol });
@@ -78,3 +79,16 @@ export function symbolPrecision(s, price) {
 }
 
 export const SYMBOL_COLORS = { crypto: '#f7931a', stock: '#2962ff', index: '#089981', forex: '#9c27b0', futures: '#ff9800', bond: '#00bcd4' };
+
+const COIN_ICONS = new Set(['BTC', 'ETH', 'BNB', 'SOL', 'XRP', 'ADA', 'DOGE', 'AVAX', 'DOT', 'LINK', 'LTC', 'TRX', 'BCH', 'UNI', 'ATOM', 'FIL', 'XLM', 'AAVE', 'ETC']);
+// Round symbol logo: real coin icon when available, otherwise a coloured letter badge.
+export function symbolLogo(s, cls = '') {
+  const badge = () => el('span', { class: 'sym-badge ' + cls, style: { background: SYMBOL_COLORS[s.type] } }, (s.base || s.symbol)[0]);
+  if (s.type === 'crypto' && COIN_ICONS.has(s.base)) {
+    const img = el('img', { class: 'sym-badge logo ' + cls, src: `img/coins/${s.base.toLowerCase()}.svg`, alt: '' });
+    img.addEventListener('error', () => img.replaceWith(badge()));
+    return img;
+  }
+  return badge();
+}
+export function quoteCurrency(s) { return s.type === 'crypto' ? 'USDT' : s.type === 'forex' ? s.symbol.slice(3) || 'USD' : s.type === 'bond' ? '%' : 'USD'; }
