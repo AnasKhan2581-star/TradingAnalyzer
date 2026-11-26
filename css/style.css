@@ -42,8 +42,8 @@ kbd { background: var(--bg3); border-radius: 4px; padding: 1px 6px; font: 12px u
 .tb-scroll { display: flex; align-items: center; gap: 2px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
 .tb-scroll::-webkit-scrollbar { display: none; }
 .tb-right { display: flex; align-items: center; gap: 2px; flex: none; }
-.logo { display: flex; align-items: center; gap: 6px; padding: 0 8px 0 2px; color: var(--text); text-decoration: none; font-weight: 700; font-size: 15px; letter-spacing: -.2px; flex: none; }
-.logo svg { width: 32px; height: 26px; }
+#logo { display: flex; align-items: center; gap: 6px; padding: 0 8px 0 2px; color: var(--text); text-decoration: none; font-weight: 700; font-size: 15px; letter-spacing: -.2px; flex: none; }
+#logo svg { width: 32px; height: 26px; }
 .tb-btn { height: 34px; min-width: 34px; padding: 0 8px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; border-radius: 4px; color: var(--text); white-space: nowrap; flex: none; font-size: 14px; }
 .tb-btn svg { width: 28px; height: 28px; }
 .tb-btn.icon-only { padding: 0 3px; }
@@ -471,7 +471,7 @@ canvas.eq { width: 100%; height: 160px; min-height: 120px; flex: 1; display: blo
 @media (max-width: 1280px) {
   .hide-md { display: none !important; }
   #btnIndicators .lbl, #btnAlert .lbl, #btnReplay .lbl, #btnSave .lbl { display: none; }
-  .logo span { display: none; }
+  #logo span { display: none; }
 }
 @media (max-width: 1024px) {
   #btnTrade .lbl { display: none; }
@@ -483,7 +483,7 @@ canvas.eq { width: 100%; height: 160px; min-height: 120px; flex: 1; display: blo
 @media (max-width: 768px) {
   .hide-sm { display: none !important; }
   #topbar { height: 48px; }
-  .logo { display: none; }
+  #logo { display: none; }
   .tb-btn.iv { min-width: 28px; padding: 0 4px; }
   #lefttb { position: absolute; left: 0; top: 0; bottom: 0; transform: translateX(-100%); transition: transform .2s ease; box-shadow: var(--shadow); width: 56px; z-index: 30; }
   body.lt-open #lefttb { transform: none; }
@@ -578,7 +578,7 @@ canvas.eq { width: 100%; height: 160px; min-height: 120px; flex: 1; display: blo
 
 
 /* ============================== Symbol logos ============================== */
-img.sym-badge.logo { background: transparent; object-fit: contain; }
+img.sym-badge.coin { background: transparent; object-fit: contain; }
 .sym-badge.xl { width: 48px; height: 48px; font-size: 20px; }
 .fb-grip { display: grid; place-items: center; padding: 0 4px; color: var(--muted); cursor: grab; }
 .fb-more { display: none; }
@@ -742,3 +742,34 @@ img.sym-badge.logo { background: transparent; object-fit: contain; }
 .mr-del { position: absolute; right: 0; top: 0; bottom: 0; width: 96px; background: var(--down); color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 13px; font-weight: 600; transition: background .15s; }
 .mr-del svg { width: 26px; height: 26px; stroke-width: 1.6; }
 .mr-del.full { background: #d81e2e; }
+
+/* ============================== Layout bug fixes (audit) ============================== */
+.dlg { min-width: 0; }
+.dlg-body, .dlg-head { min-width: 0; }
+.ss-row > *, .ind-row > * { min-width: 0; }
+.ss-sym, .ind-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.help pre { overflow-wrap: anywhere; }
+.tbl.kb td { white-space: normal; }
+.tbl.kb kbd { white-space: nowrap; display: inline-block; }
+@media (max-width: 768px) {
+  .dlg-overlay { grid-template-columns: minmax(0, 1fr); }
+  .dlg { max-width: 100vw; }
+  .draw-tb { left: 50%; right: auto; transform: translateX(-50%); max-width: calc(100% - 16px); overflow-x: auto; scrollbar-width: none; }
+  .draw-tb::-webkit-scrollbar { display: none; }
+  #mbar { min-width: 0; }
+  .mb-wheels { flex: 0 1 auto; min-width: 0; }
+  .mb-acts { flex: none; }
+}
+@media (max-width: 400px) {
+  #mbar { padding-left: 8px; }
+  .mb-wheels { gap: 4px; }
+  .sym-wheel { width: 76px; } .iv-wheel { width: 44px; }
+  .wi { font-size: 16px; }
+  .mb-act { width: 42px; height: 44px; }
+  .mb-act svg { width: 28px; height: 28px; }
+  .mb-sep { margin: 0 2px; }
+}
+@media (max-width: 768px) {
+  #favbar { top: 128px; }
+  body.draw-mode .legend[data-pane="main"] { padding-top: 186px; }
+}

@@ -85,7 +85,7 @@ const COIN_ICONS = new Set(['BTC', 'ETH', 'BNB', 'SOL', 'XRP', 'ADA', 'DOGE', 'A
 export function symbolLogo(s, cls = '') {
   const badge = () => el('span', { class: 'sym-badge ' + cls, style: { background: SYMBOL_COLORS[s.type] } }, (s.base || s.symbol)[0]);
   if (s.type === 'crypto' && COIN_ICONS.has(s.base)) {
-    const img = el('img', { class: 'sym-badge logo ' + cls, src: `img/coins/${s.base.toLowerCase()}.svg`, alt: '' });
+    const img = el('img', { class: 'sym-badge coin ' + cls, src: `img/coins/${s.base.toLowerCase()}.svg`, alt: '' });
     img.addEventListener('error', () => img.replaceWith(badge()));
     return img;
   }
