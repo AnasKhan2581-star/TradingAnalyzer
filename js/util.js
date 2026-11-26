@@ -106,12 +106,43 @@ export function gauss(rnd) {
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
 }
 
+// Persistent key/value store (localStorage). Every change is time-stamped so the
+// cloud module can sync it to the signed-in user's account.
+const storeHooks = new Set();
+const LOCAL_ONLY = new Set(['rightPanel', 'bottomTab', 'rpWidth', 'bpHeight', 'favPos']);
+let metaCache = null;
+const readMeta = () => { if (!metaCache) { try { metaCache = JSON.parse(localStorage.getItem('ta.__meta') || '{}'); } catch { metaCache = {}; } } return metaCache; };
+const writeMeta = () => { try { localStorage.setItem('ta.__meta', JSON.stringify(metaCache || {})); } catch { /* ignore */ } };
+function touch(k) {
+  if (LOCAL_ONLY.has(k) || k.startsWith('__')) return;
+  readMeta()[k] = Date.now(); writeMeta();
+  for (const f of storeHooks) { try { f(k); } catch (e) { console.warn(e); } }
+}
 export const store = {
   get(k, def) {
     try { const v = localStorage.getItem('ta.' + k); return v == null ? def : JSON.parse(v); } catch { return def; }
   },
-  set(k, v) { try { localStorage.setItem('ta.' + k, JSON.stringify(v)); } catch { /* ignore */ } },
-  del(k) { try { localStorage.removeItem('ta.' + k); } catch { /* ignore */ } },
+  set(k, v) {
+    const s = JSON.stringify(v);
+    try { if (localStorage.getItem('ta.' + k) === s) return; localStorage.setItem('ta.' + k, s); } catch { return; }
+    touch(k);
+  },
+  del(k) { try { if (localStorage.getItem('ta.' + k) == null) return; localStorage.removeItem('ta.' + k); } catch { return; } touch(k); },
+  // raw string access used by sync / import
+  getRaw(k) { try { return localStorage.getItem('ta.' + k); } catch { return null; } },
+  setRaw(k, s, t) {
+    try { if (s == null) localStorage.removeItem('ta.' + k); else localStorage.setItem('ta.' + k, s); } catch { return; }
+    if (t) { readMeta()[k] = t; writeMeta(); } else touch(k);
+  },
+  keys() {
+    const out = [];
+    try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith('ta.') && !k.startsWith('ta.__')) { const kk = k.slice(3); if (!LOCAL_ONLY.has(kk)) out.push(kk); } } } catch { /* ignore */ }
+    return out;
+  },
+  meta() { return readMeta(); },
+  setMeta(m) { metaCache = m; writeMeta(); },
+  clearAll() { try { for (const k of Object.keys(localStorage)) if (k.startsWith('ta.')) localStorage.removeItem(k); } catch { /* ignore */ } metaCache = {}; },
+  onChange(f) { storeHooks.add(f); return () => storeHooks.delete(f); },
 };
 
 export function debounce(f, ms) {

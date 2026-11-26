@@ -5,6 +5,8 @@ import { $, $$ } from './util.js';
 import { menu } from './ui.js';
 import * as D from './dialogs.js';
 import { CHART_TYPES } from './icons.js';
+import { cloud } from './cloud.js';
+import * as Account from './account.js';
 
 const icons = { tools: 'pencil', ind: 'fx', watchlist: 'watchlist', alerts: 'alarm', trading: 'trade', more: 'dots' };
 for (const b of $$('#mobilenav button')) {
@@ -35,6 +37,8 @@ for (const b of $$('#mobilenav button')) {
         { label: 'Chart settings', icon: 'gear', onClick: () => D.chartSettings(app) },
         { label: 'Take a snapshot', icon: 'camera', onClick: () => app.screenshot() },
         { label: 'Save / export', icon: 'save', onClick: () => app.saveMenu(b) },
+        { divider: true },
+        cloud.user ? { label: `Account (${cloud.user.name})`, icon: 'user', onClick: () => Account.menu(app, b) } : { label: 'Sign in with Google', icon: 'user', onClick: () => Account.signInDialog(app) },
       ]);
     }
   });

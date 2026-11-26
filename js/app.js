@@ -10,6 +10,8 @@ import { popup, menu, menuList, closePopup, contextMenu, toast, promptText, colo
 import * as D from './dialogs.js';
 import { Panels } from './panels.js';
 import { Bottom } from './bottom.js';
+import { cloud } from './cloud.js';
+import * as Account from './account.js';
 
 const COMPARE_COLORS = ['#FF9800', '#E91E63', '#00BCD4', '#9C27B0', '#4CAF50', '#795548'];
 const LAYOUTS = [
@@ -252,6 +254,7 @@ class App extends Emitter {
     bind('btnShot', (e, b) => this.shotMenu(b), 'camera');
     bind('btnTheme', () => this.toggleTheme(), this.theme === 'dark' ? 'sun' : 'moon');
     bind('btnTrade', () => this.bottom.open('trading'), 'trade', 'Trade');
+    Account.init(this, $('#btnAccount'));
     this.renderIntervals();
     // replay bar
     $('#replayPlay').innerHTML = I.play; $('#replayStep').innerHTML = I.stepfwd; $('#replayBack').innerHTML = I.stepback; $('#replayExit').innerHTML = I.close;
@@ -349,7 +352,12 @@ class App extends Emitter {
       { divider: true },
       { label: 'Export chart data (CSV)', icon: 'download', onClick: () => this.exportCSV() },
       { divider: true },
-      { label: 'Reset everything', icon: 'trash', danger: true, onClick: async () => { if (await confirmDlg('Reset all layouts, drawings, alerts and settings?', 'Reset')) { localStorage.clear(); location.reload(); } } },
+      { label: 'Reset everything', icon: 'trash', danger: true, onClick: async () => {
+        const msg = cloud.user ? 'Reset all layouts, drawings, alerts, watchlists and settings on this device AND in your cloud account?' : 'Reset all layouts, drawings, alerts and settings?';
+        if (!(await confirmDlg(msg, 'Reset'))) return;
+        try { if (cloud.user) await cloud.wipeCloud(); } catch (e) { toast('Could not clear cloud data: ' + e.message, 'error'); return; }
+        store.clearAll(); location.reload();
+      } },
     ]);
   }
   exportLayout() {
@@ -359,7 +367,11 @@ class App extends Emitter {
   importLayout() {
     const inp = el('input', { type: 'file', accept: '.json,application/json' });
     inp.addEventListener('change', async () => {
-      try { const data = JSON.parse(await inp.files[0].text()); for (const k in data) if (k.startsWith('ta.')) localStorage.setItem(k, data[k]); location.reload(); } catch { toast('Invalid layout file', 'error'); }
+      try {
+        const data = JSON.parse(await inp.files[0].text());
+        for (const k in data) if (k.startsWith('ta.') && !k.startsWith('ta.__')) store.setRaw(k.slice(3), data[k]);
+        await cloud.flush(); location.reload();
+      } catch { toast('Invalid layout file', 'error'); }
     });
     inp.click();
   }
@@ -405,6 +417,8 @@ class App extends Emitter {
       { divider: true },
       { label: 'Save / export', icon: 'save', onClick: () => this.saveMenu($('#btnType')) },
       { label: 'Keyboard shortcuts', icon: 'code', onClick: () => D.shortcutsDialog() },
+      { divider: true },
+      cloud.user ? { label: `Account (${cloud.user.name})`, icon: 'user', onClick: () => Account.menu(this, $('#btnAccount')) } : { label: 'Sign in with Google', icon: 'user', onClick: () => Account.signInDialog(this) },
     ];
     menu(b, items);
   }
