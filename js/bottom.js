@@ -41,8 +41,11 @@ export class Bottom {
       const up = () => { rz.removeEventListener('pointermove', mv); rz.removeEventListener('pointerup', up); store.set('bpHeight', this.height); };
       rz.addEventListener('pointermove', mv); rz.addEventListener('pointerup', up);
     });
+  }
+  // Re-open the tab that was open last time; called once the charts exist.
+  restore() {
     const saved = store.get('bottomTab', null);
-    if (saved && !isMobile()) this.open(saved);
+    if (saved && !isMobile() && TABS.some((t) => t.id === saved)) { try { this.open(saved); } catch (e) { console.warn(e); this.close(); } }
   }
   toggle(id) { if (this.cur === id) this.close(); else this.open(id); }
   open(id) {
@@ -394,6 +397,7 @@ class StrategyTester {
   get strat() { return STRATEGIES.find((s) => s.id === this.sid) || STRATEGIES[0]; }
   render(body) {
     body.innerHTML = '';
+    if (!this.app.active) return;
     const st = this.strat;
     const p = { ...defaultInputs(st), ...(this.params[st.id] || {}) };
     const form = el('div', { class: 'st-form' });
@@ -418,6 +422,7 @@ class StrategyTester {
   saveO() { store.set('stratOpts', this.opts); }
   run() {
     const w = this.app.active, st = this.strat;
+    if (!w) return;
     const p = { ...defaultInputs(st), ...(this.params[st.id] || {}) };
     const bars = w.chart.disp;
     if (bars.length < 30) { if (this.resEl) this.resEl.innerHTML = '<div class="empty">Not enough data</div>'; return; }

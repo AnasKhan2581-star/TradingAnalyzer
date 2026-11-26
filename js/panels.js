@@ -33,7 +33,7 @@ export class Panels {
     this.ratingCache = new Map();
     this.buildBar();
     this.buildResizer();
-    this.show(this.cur);
+    $('#rightpanel').hidden = true;
     hub.on('quote', (id, q) => this.onQuote(id, q));
     app.on('active', () => this.refresh(['details', 'objtree', 'datawindow', 'watchlist']));
     app.on('symbol', () => this.refresh(['details', 'objtree', 'watchlist']));
@@ -74,6 +74,8 @@ export class Panels {
       h.addEventListener('pointermove', mv); h.addEventListener('pointerup', up);
     });
   }
+  // Re-open the panel that was open last time; called once the charts exist.
+  restore() { try { this.show(this.cur); } catch (e) { console.warn(e); this.show('watchlist'); } }
   toggle(id) { this.show(this.cur === id ? null : id); }
   show(id) {
     this.cur = id;

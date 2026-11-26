@@ -198,6 +198,8 @@ class App extends Emitter {
     this.panels = new Panels(this);
     this.bottom = new Bottom(this);
     this.buildLayout();
+    this.panels.restore();
+    this.bottom.restore();
     this.bindKeys();
     hub.on('status', (s) => { $('#feedStatus').className = 'feed-status ' + (s.live ? 'live' : 'sim'); $('#feedStatus').title = s.live ? 'Connected to real-time crypto data (Binance)' : 'Real-time feed unavailable — simulated data'; });
     hub.startQuotes();
