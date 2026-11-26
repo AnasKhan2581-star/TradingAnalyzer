@@ -58,7 +58,7 @@ function hl(text, q) {
 
 /* ---------------------------- Indicators ---------------------------- */
 export function indicatorsDialog(app) {
-  const favs = new Set(store.get('favIndicators', ['ema', 'rsi', 'macd', 'bb', 'vol']));
+  const favs = new Set(store.get('favIndicators', ['ema', 'rsi', 'macd', 'bb', 'vol', 'unmitigated']));
   let cat = 'all';
   const input = el('input', { class: 'inp', placeholder: 'Search', autocomplete: 'off' });
   const side = el('div', { class: 'ind-side' });

@@ -327,6 +327,25 @@ export const INDICATORS = [
     },
   },
   {
+    // Port of the Pine v6 "Unmitigated Candles" script: boxes every candle (2–500 bars back) whose
+    // high–low range has not been touched by any later candle, ignoring the candle right after it.
+    id: 'unmitigated', name: 'Unmitigated Candles', short: 'Unmitigated Candles', overlay: true, group: 'Price Action',
+    inputs: [{ id: 'lookback', name: 'Lookback Period', type: 'int', def: 400, min: 10, max: 500 }],
+    plots: [{ id: 'boxes', name: 'Box', type: 'boxes', color: '#00BCD4', width: 2, fillAlpha: 0.05 }],
+    calc: (S, p) => {
+      const { high: H, low: L } = S, n = H.length, last = n - 1;
+      const maxBars = Math.min(p.lookback, last, 500);
+      const boxes = [];
+      for (let idx = 2; idx <= maxBars; idx++) {
+        const j = last - idx, top = H[j], bot = L[j];
+        let ok = true;
+        for (let k = j + 2; k <= last; k++) if (L[k] <= top && H[k] >= bot) { ok = false; break; }
+        if (ok) boxes.push({ i0: j, i1: j + 1, top, bottom: bot });
+      }
+      return { _boxes: boxes };
+    },
+  },
+  {
     id: 'lrc', name: 'Linear Regression Curve', short: 'LinReg', overlay: true, group: 'Trend',
     inputs: [LEN(50), SRC],
     plots: [{ id: 'lr', name: 'LinReg', color: '#E040FB', width: 2 }],

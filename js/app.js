@@ -184,6 +184,14 @@ class App extends Emitter {
 
   init() {
     document.documentElement.dataset.theme = this.theme;
+    // one-time: put newly added built-in indicators into the user's favorites
+    for (const id of ['unmitigated']) {
+      const done = store.get('favSeeded', []);
+      if (done.includes(id)) continue;
+      const fav = store.get('favIndicators', ['ema', 'rsi', 'macd', 'bb', 'vol']);
+      if (!fav.includes(id)) fav.push(id);
+      store.set('favIndicators', fav); store.set('favSeeded', [...done, id]);
+    }
     this.buildTopbar();
     this.buildLeftToolbar();
     this.buildBottomBar();

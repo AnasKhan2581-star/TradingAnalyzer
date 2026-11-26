@@ -709,6 +709,19 @@ export class Chart extends Emitter {
     }
     for (const pl of inst.def.plots) {
       const st = inst.styles[pl.id]; if (!st.visible) continue;
+      if (pl.type === 'boxes') {
+        // Boxes span from the centre of bar i0 to the centre of bar i1 (Pine box.new semantics)
+        const lw = st.width || 1;
+        for (const bx of R._boxes || []) {
+          if (bx.i1 < from - 1 || bx.i0 > to + 1) continue;
+          const x0 = this.idxToX(bx.i0), x1 = this.idxToX(bx.i1), y0 = Y(bx.top), y1 = Y(bx.bottom);
+          const w = Math.max(1, x1 - x0), h = Math.max(1, y1 - y0);
+          ctx.fillStyle = hexToRgba(st.color, pl.fillAlpha ?? 0.05); ctx.fillRect(x0, y0, w, h);
+          ctx.strokeStyle = st.color; ctx.lineWidth = lw; ctx.setLineDash([]);
+          ctx.strokeRect(x0 + lw / 2, y0 + lw / 2, Math.max(0, w - lw), Math.max(0, h - lw));
+        }
+        continue;
+      }
       const A = R[pl.id]; if (!A) continue;
       const off = this.plotOffset(inst, pl), cols = R._colors && R._colors[pl.id];
       const type = st.type || pl.type || 'line';
@@ -1031,6 +1044,7 @@ export class Chart extends Emitter {
       let html = '';
       for (const pl of inst.def.plots) {
         const st = inst.styles[pl.id]; if (!st.visible) continue;
+        if (pl.type === 'boxes') { html += `<b style="color:${st.color}">${(inst.result._boxes || []).length}</b>`; continue; }
         const A = inst.result[pl.id]; if (!A) continue;
         const v = A[i - this.plotOffset(inst, pl)];
         let col = st.color; const cols = inst.result._colors?.[pl.id];
