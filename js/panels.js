@@ -26,7 +26,7 @@ const PANELS = [
 export class Panels {
   constructor(app) {
     this.app = app;
-    this.cur = isMobile() ? null : store.get('rightPanel', 'watchlist');
+    this.cur = isMobile() ? null : store.get('rightPanel', window.innerWidth > 1100 ? 'watchlist' : null);
     this.wl = store.get('watchlist', DEFAULT_WL);
     this.width = store.get('rpWidth', 320);
     this.rows = new Map();

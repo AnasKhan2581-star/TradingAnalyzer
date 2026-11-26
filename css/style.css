@@ -773,3 +773,7 @@ img.sym-badge.coin { background: transparent; object-fit: contain; }
   #favbar { top: 128px; }
   body.draw-mode .legend[data-pane="main"] { padding-top: 186px; }
 }
+/* tablets: side panels slide over the chart instead of squeezing it */
+@media (min-width: 769px) and (max-width: 1100px) {
+  #rightpanel { position: absolute; top: 0; bottom: 0; right: 48px; z-index: 20; box-shadow: -8px 0 24px rgba(0,0,0,.35); max-width: calc(100% - 120px); }
+}
