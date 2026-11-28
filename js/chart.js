@@ -108,6 +108,7 @@ export class Chart extends Emitter {
     this.tool = null; this.cursorMode = 'cross'; this.magnet = 0; this.stayDrawing = false; this.lockAll = false; this.hideAll = false;
     this.selected = null; this.hoverDrawing = null; this.creating = null; this.drag = null;
     this.cross = null; this.pointers = new Map();
+    this.touchDraw = matchMedia('(pointer: coarse)').matches; this.tcur = null;
     this.undoStack = []; this.redoStack = [];
     this.loading = false;
     this._buildNav();
@@ -328,7 +329,47 @@ export class Chart extends Emitter {
     if (this.creating) { this.drawings = this.drawings.filter((d) => d !== this.creating.d); this.creating = null; }
     this.tool = t; this.selected = null; this.emit('select', null);
     this.canvas.style.cursor = t ? 'crosshair' : '';
+    this._syncTouchCursor(true);
     this.render();
+  }
+  // Touch devices: a drawing tool shows a cursor that one-finger drags move (relative, like a
+  // trackpad) and taps commit points at — so the finger never covers the point being placed.
+  get touchMode() { return !!this.touchDraw && !!this.tool && TOOLS[this.tool]?.n !== 0; }
+  _syncTouchCursor(reset) {
+    if (this.touchMode) {
+      if (reset || !this.tcur) { const m = this.panes[0]; this.tcur = { x: Math.round(this.plotW * 0.55), y: Math.round(m.top + m.h * 0.5) }; }
+      this._setTouchCross();
+    } else if (this.tcur) { this.tcur = null; this.cross = null; }
+    this.emit('drawstate', this.drawState());
+  }
+  _setTouchCross() {
+    const tc = this.tcur; if (!tc) return;
+    const r = this._region(Math.min(tc.x, this.plotW - 1), tc.y); if (!r.pane) return;
+    const idx = Math.round(this.xToIdx(tc.x));
+    let y = tc.y;
+    if (this.magnet && r.pane.id === 'main' && this.disp[idx]) {
+      const b = this.disp[idx]; let bd = Infinity, best = y;
+      for (const v of [b.o, b.h, b.l, b.c]) { const yy = this.p2y(r.pane, v); if (Math.abs(yy - y) < bd) { bd = Math.abs(yy - y); best = yy; } }
+      if (this.magnet === 2 || bd < 30) y = best;
+    }
+    this.cross = { idx, y, pane: r.pane, tdraw: true };
+    if (this.creating && this.creating.d.pane === r.pane.id) this.creating.d.points[this.creating.idx] = this._pt(r.pane, tc.x, tc.y, true);
+    this.emit('crosshair', { idx, t: this.idxT(idx), price: this.y2p(r.pane, y) });
+  }
+  drawState() {
+    if (!this.tool) return null;
+    const tool = TOOLS[this.tool]; if (!tool) return null;
+    const placed = this.creating ? this.creating.idx : 0;
+    return { tool: this.tool, name: tool.name, n: tool.n, step: placed + 1, total: tool.n > 0 ? tool.n : null, placed, touch: this.touchMode };
+  }
+  _touchTap() {
+    const tc = this.tcur; if (!tc) return;
+    const r = this._region(Math.min(tc.x, this.plotW - 1), tc.y); if (!r.pane) return;
+    const y = this.cross?.tdraw ? this.cross.y : tc.y;
+    this._toolDown(r.pane, tc.x, y, { detail: 1 });
+    if (this.drag?.kind === 'create') this.drag = null;
+    if (this.creating) this.creating.first = false;
+    this._syncTouchCursor(false);
   }
   cancel() {
     if (this.creating) {
@@ -338,6 +379,7 @@ export class Chart extends Emitter {
     }
     this.drawings = this.drawings.filter((d) => !TOOLS[d.type]?.temp);
     if (this.tool) { this.tool = null; this.emit('tool', null); }
+    this._syncTouchCursor(false);
     this.selected = null; this.emit('select', null); this.render();
   }
   finishPath() { if (this.creating && TOOLS[this.creating.d.type].n === -1) { this.creating.d.points.pop(); this._finish(); } }
@@ -385,6 +427,7 @@ export class Chart extends Emitter {
     this.canvas.style.width = w + 'px'; this.canvas.style.height = h + 'px';
     this._layout();
     if (wasEnd) this.rightIdx = Math.max(this.rightIdx, this.disp.length - 1 + this.settings.rightMargin);
+    if (this.tcur) { this.tcur.x = Math.min(this.tcur.x, this.plotW - 2); this.tcur.y = Math.min(this.tcur.y, this.plotH - 2); this._setTouchCross(); }
     this._draw();
   }
   _layout() {
@@ -944,6 +987,13 @@ export class Chart extends Emitter {
     if (!this.cross || this.drag?.kind === 'pan' && this.cross.touch) return;
     const ctx = this.ctx, th = this.theme, c = this.cross;
     const x = Math.round(this.idxToX(c.idx)) + 0.5, y = Math.round(c.y) + 0.5;
+    if (c.tdraw) {
+      ctx.strokeStyle = '#2962FF'; ctx.lineWidth = 1.5; ctx.setLineDash([6, 5]);
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, this.plotH); ctx.moveTo(0, y); ctx.lineTo(this.plotW, y); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = '#2962FF'; ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = this.theme.bg; ctx.lineWidth = 2; ctx.stroke();
+      return;
+    }
     if (this.cursorMode === 'arrow') return;
     if (this.cursorMode === 'dot') { ctx.fillStyle = th.cross; ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill(); return; }
     ctx.strokeStyle = th.cross; ctx.lineWidth = 1; ctx.setLineDash(this.settings.crossStyle === 'solid' ? [] : this.settings.crossStyle === 'dotted' ? [1, 2] : [5, 4]);
@@ -1176,6 +1226,11 @@ export class Chart extends Emitter {
     }
     const r = this._region(x, y);
     const touch = e.pointerType === 'touch';
+    if (r.kind === 'plot' && touch && this.touchMode) {
+      if (!this.tcur) this._syncTouchCursor(true);
+      this.drag = { kind: 'tcur', x0: x, y0: y, cx0: this.tcur.x, cy0: this.tcur.y, moved: false };
+      this.render(); return;
+    }
     if (r.kind === 'plot') {
       if (this.tool || (e.shiftKey && !this.creating)) {
         if (!this.tool) { this.tool = 'measure'; this._tempTool = true; }
@@ -1256,6 +1311,7 @@ export class Chart extends Emitter {
     } else if (!tool.temp) { this.selected = d; if (tool.needsText || tool.needsEmoji) this.emit('requestText', d); }
     if (this._tempTool) { this.tool = null; this._tempTool = false; }
     else if (!this.stayDrawing || tool.temp) { this.tool = null; this.emit('tool', null); this.canvas.style.cursor = ''; }
+    this._syncTouchCursor(false);
     this._changed();
   }
   _move(e) {
@@ -1268,8 +1324,18 @@ export class Chart extends Emitter {
       this.spacing = clamp(dr.sp0 * (d / dr.d0), 0.6, 80);
       const mid = (a.x + b.x) / 2;
       this.rightIdx = dr.idx + (this.plotW - mid) / this.spacing;
-      this._clampView(); this.render(); return;
+      this._clampView(); if (this.tcur) this._setTouchCross(); this.render(); return;
     }
+    if (dr?.kind === 'tcur') {
+      const dx = x - dr.x0, dy = y - dr.y0;
+      if (Math.abs(dx) + Math.abs(dy) > 6) dr.moved = true;
+      if (dr.moved) {
+        this.tcur = { x: clamp(dr.cx0 + dx, 2, this.plotW - 2), y: clamp(dr.cy0 + dy, 2, this.plotH - 2) };
+        this._setTouchCross();
+      }
+      this.render(); return;
+    }
+    if (this.tcur && e.pointerType === 'touch') return;
     const r = this._region(x, y);
     // crosshair
     if (r.pane && x < this.plotW) {
@@ -1324,7 +1390,7 @@ export class Chart extends Emitter {
         sc.min = mid - half; sc.max = mid + half; break;
       }
       case 'tscale': {
-        const f = Math.exp((x - dr.x0) / 150);
+        const f = Math.exp((dr.x0 - x) / 150); // drag left = zoom in, right = zoom out
         this.spacing = clamp(dr.sp0 * f, 0.6, 80);
         this._clampView(); break;
       }
@@ -1367,6 +1433,7 @@ export class Chart extends Emitter {
     if (dr?.kind === 'pinch') { if (this.pointers.size < 2) this.drag = null; return; }
     this.drag = null;
     if (!dr) return;
+    if (dr.kind === 'tcur') { if (!dr.moved) this._touchTap(); this.render(); return; }
     if (dr.kind === 'brush') { const d = this.creating?.d; if (d && d.points.length > 1) this._finish(); else { this.drawings = this.drawings.filter((q) => q !== d); this.creating = null; } }
     else if (dr.kind === 'create') {
       const cr = this.creating;

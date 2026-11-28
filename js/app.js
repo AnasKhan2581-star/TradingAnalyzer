@@ -61,6 +61,7 @@ class ChartWidget {
     c.on('crosshair', (x) => { app.onCrosshair(this, x); });
     c.on('contextmenu', (e) => app.chartContextMenu(this, e));
     c.on('click', (e) => app.onChartClick(this, e));
+    c.on('drawstate', (st) => app.emit('drawstate', this, st));
   }
   async load() {
     const tok = ++this.token;

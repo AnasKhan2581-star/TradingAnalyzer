@@ -3,7 +3,7 @@
 import { $, $$, el, store, uid, fmtPrice, fmtPct, fmtSigned, intervalById, INTERVALS, isMobile, debounce } from './util.js';
 import { SYMBOLS, findSymbol, symbolPrecision, symbolLogo, quoteCurrency } from './symbols.js';
 import { hub } from './datafeed.js';
-import { I, CHART_TYPES } from './icons.js';
+import { I, CHART_TYPES, TOOL_ICON } from './icons.js';
 import { menu, toast, promptText, contextMenu, closePopup } from './ui.js';
 import * as D from './dialogs.js';
 import * as Account from './account.js';
@@ -26,6 +26,11 @@ export function initMobile(a) {
   app.on('layouts', applyInset); app.on('loaded', applyInset); window.addEventListener('resize', debounce(applyInset, 150));
   const refresh = () => { renderHeader(); renderWheels(); };
   for (const ev of ['symbol', 'interval', 'active', 'loaded', 'indicators', 'recent', 'layouts']) app.on(ev, refresh);
+  app.on('drawstate', (w, st) => {
+    if (w !== app.active) return;
+    if (st && isMobile() && !document.body.classList.contains('draw-mode')) toggleDrawMode(true);
+    renderDrawBanner(st); syncDrawBar();
+  });
   app.on('alerts', () => { if (tab === 'alerts') renderPage(); });
   hub.on('quote', (id, q) => onQuote(id, q));
   window.addEventListener('resize', debounce(() => { if (!isMobile() && tab !== 'chart') setTab('chart'); }, 150));
@@ -103,13 +108,46 @@ function buildBar() {
   const bar = $('#mbar'); bar.innerHTML = '';
   const act = (icon, title, fn, cls = '') => el('button', { class: 'mb-act ' + cls, title, html: I[icon], onclick: (e) => fn(e.currentTarget) });
   bar.append(
-    el('div', { class: 'mb-wheels' }, el('div', { class: 'wheel sym-wheel' }), el('div', { class: 'wheel iv-wheel' })),
-    el('div', { class: 'mb-acts' },
-      act('pencil', 'Drawing tools', () => toggleDrawMode(), 'draw-btn'),
-      act('trade2', 'Paper trading', () => { app.panels.show(null); app.bottom.open('trading'); }),
-      act('dots', 'More', (b) => quickMenu(b)),
+    el('div', { class: 'mb-normal' },
+      el('div', { class: 'mb-wheels' }, el('div', { class: 'wheel sym-wheel' }), el('div', { class: 'wheel iv-wheel' })),
+      el('div', { class: 'mb-acts' },
+        act('pencil', 'Drawing tools', () => toggleDrawMode(), 'draw-btn'),
+        act('trade2', 'Paper trading', () => { app.panels.show(null); app.bottom.open('trading'); }),
+        act('dots', 'More', (b) => quickMenu(b)),
+        el('span', { class: 'mb-sep' }),
+        act('undoArrow', 'Undo', () => app.active.chart.undo()))),
+    // drawing-mode bar: current tool · magnet · stay in drawing mode · hide drawings | object tree · exit
+    el('div', { class: 'mb-draw' },
+      act('trendline', 'All drawing tools', () => document.body.classList.toggle('lt-open'), 'mbd-tool'),
+      el('span', { class: 'mbd-sp' }),
+      act('magnet', 'Magnet mode', () => { app.setMagnet(app.magnet ? 0 : 1); syncDrawBar(); toast(app.magnet ? 'Magnet on — points snap to candle OHLC' : 'Magnet off', 'info', 1400); }, 'mbd-magnet'),
+      act('stay', 'Stay in drawing mode', () => { app.stay = !app.stay; app.applyToolState(); syncDrawBar(); toast(app.stay ? 'Stay in drawing mode on' : 'Stay in drawing mode off', 'info', 1400); }, 'mbd-stay'),
+      act('eye', 'Hide all drawings', () => { app.hideAll = !app.hideAll; app.applyToolState(); syncDrawBar(); }, 'mbd-hide'),
       el('span', { class: 'mb-sep' }),
-      act('undoArrow', 'Undo', () => app.active.chart.undo())));
+      act('layers', 'Object tree', () => { app.panels.show('objtree'); }),
+      act('close', 'Exit drawing mode', () => toggleDrawMode(false), 'mbd-exit')));
+}
+function syncDrawBar() {
+  const b = $('#mbar'); if (!b) return;
+  const t = app.tool || app.lastTool?.lines || 'trendline';
+  const tb = b.querySelector('.mbd-tool'); if (tb) { tb.innerHTML = I[TOOL_ICON[t]] || I.trendline; tb.classList.toggle('on', !!app.tool); }
+  b.querySelector('.mbd-magnet')?.classList.toggle('on', !!app.magnet);
+  b.querySelector('.mbd-stay')?.classList.toggle('on', !!app.stay);
+  const h = b.querySelector('.mbd-hide'); if (h) { h.classList.toggle('on', !!app.hideAll); h.innerHTML = app.hideAll ? I.eyeOff : I.eye; }
+}
+/* top banner while placing points with the touch cursor */
+const ORD = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh'];
+function renderDrawBanner(st) {
+  let bn = $('#drawbanner');
+  if (!st || !st.touch) { if (bn) bn.hidden = true; return; }
+  if (!bn) { bn = el('div', { id: 'drawbanner' }); $('#chartsWrap').append(bn); }
+  bn.hidden = false; bn.innerHTML = '';
+  const path = st.n === -1;
+  const chip = path ? `Point ${st.step}` : `${st.step} of ${st.total}`;
+  const text = st.n === 1 ? 'Tap to place' : path ? (st.placed >= 2 ? 'Tap to add a point' : `Tap to set ${ORD[st.placed] || 'next'} point`) : `Tap to set ${ORD[st.step - 1] || 'next'} point`;
+  bn.append(el('span', { class: 'db-chip' }, chip), el('span', { class: 'db-text' }, text));
+  if (path && st.placed >= 2) bn.append(el('button', { class: 'db-done', onclick: () => app.active.chart.finishPath() }, 'Done'));
+  bn.append(el('button', { class: 'db-del', title: 'Cancel drawing', html: I.trash, onclick: () => { app.active.chart.cancel(); app.setToolUI(null); } }));
 }
 function makeWheel(box, items, sel, onPick, onTapSel) {
   const H = 30;
@@ -163,9 +201,10 @@ function intervalPicker() {
 function toggleDrawMode(force) {
   const on = force ?? !document.body.classList.contains('draw-mode');
   document.body.classList.toggle('draw-mode', on);
-  if (!on) { app.setTool(null); document.body.classList.remove('lt-open'); }
+  if (!on) { app.setTool(null); document.body.classList.remove('lt-open'); renderDrawBanner(null); }
   $('#mbar .draw-btn')?.classList.toggle('on', on);
   if (on && !app.favTools.length) document.body.classList.add('lt-open');
+  syncDrawBar();
 }
 function extendFavBar() {
   const orig = app.renderFavBar.bind(app);

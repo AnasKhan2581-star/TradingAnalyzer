@@ -777,3 +777,27 @@ img.sym-badge.coin { background: transparent; object-fit: contain; }
 @media (min-width: 769px) and (max-width: 1100px) {
   #rightpanel { position: absolute; top: 0; bottom: 0; right: 48px; z-index: 20; box-shadow: -8px 0 24px rgba(0,0,0,.35); max-width: calc(100% - 120px); }
 }
+
+/* touch drawing: instruction banner + drawing-mode bottom bar */
+#drawbanner { display: none; }
+.mb-draw { display: none; }
+@media (max-width: 768px) {
+  #mbar > .mb-normal { display: flex; align-items: center; flex: 1; min-width: 0; }
+  body.draw-mode #mbar > .mb-normal { display: none; }
+  body.draw-mode #mbar > .mb-draw { display: flex; }
+  .mb-draw { align-items: center; flex: 1; gap: 4px; min-width: 0; }
+  .mbd-sp { flex: 1; }
+  .mbd-tool { background: var(--bg3); border-radius: 12px; width: 54px !important; height: 50px !important; }
+  .mbd-tool.on { color: var(--text); background: var(--bg3); }
+  .mbd-exit { color: var(--text2); }
+}
+#drawbanner:not([hidden]) { display: flex; position: absolute; top: 8px; left: 8px; right: 8px; z-index: 8; align-items: center; gap: 12px; min-height: 56px; padding: 8px 8px 8px 10px; border-radius: 14px; background: color-mix(in srgb, var(--bg3) 94%, transparent); box-shadow: var(--shadow); animation: pop .15s ease-out; }
+.db-chip { background: var(--border2); border-radius: 8px; padding: 6px 12px; font-size: 16px; font-weight: 600; white-space: nowrap; }
+.db-text { flex: 1; text-align: center; font-size: 17px; }
+.db-done { height: 38px; padding: 0 14px; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 600; }
+.db-del { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 8px; color: var(--text); }
+.db-del svg { width: 30px; height: 30px; }
+@media (max-width: 768px) {
+  /* keep the selected-drawing toolbar clear of the time axis so the axis stays draggable */
+  .draw-tb { bottom: 40px; }
+}
